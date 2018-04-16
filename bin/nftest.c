@@ -1176,8 +1176,8 @@ void *p;
 	flow_record.dstport = 1111;
 	ret = check_filter_block("dst port in pblock", &flow_record, 1);
 	ret = check_filter_block("port in pblock", &flow_record, 1);
-exit(0);
 
+#if 0
 	flow_record.dstport = 2222;
 	ret = check_filter_block("dst port in pblock", &flow_record, 1);
 	ret = check_filter_block("port in pblock", &flow_record, 1);
@@ -1235,6 +1235,7 @@ exit(0);
 	flow_record.xlate_dst_ip.V6[1] = ntohll(flow_record.xlate_dst_ip.V6[1]);
 	ret = check_filter_block("dst nip fe80::2110:abcd:1235:fffe", &flow_record, 1);
 	ret = check_filter_block("dst nip fe80::2110:abcd:1235:fffc", &flow_record, 0);
+#endif /* 0 */
 
 #endif
 
