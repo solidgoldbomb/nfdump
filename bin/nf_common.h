@@ -78,6 +78,12 @@ typedef struct printmap_s {
 #define NEL_EVENT_ADD	  1LL
 #define NEL_EVENT_DELETE  2LL
 
+#define FLOW_END_REASON_IDLE_TIMEOUT	1LL
+#define FLOW_END_REASON_ACTIVE_TIMEOUT	2LL
+#define FLOW_END_REASON_END_OF_FLOW	3LL
+#define FLOW_END_REASON_FORCED_END	4LL
+#define FLOW_END_REASON_NO_RESOURCES	5LL
+
 /* prototypes */
 
 int InitSymbols(void);

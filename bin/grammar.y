@@ -105,6 +105,8 @@ char yyerror_buff[256];
 %token ASA REASON DENIED XEVENT XIP XNET XPORT INGRESS EGRESS ACL ACE XACE
 %token NAT ADD EVENT VRF NPORT NIP
 %token PBLOCK START END STEP SIZE
+%token FLOWEND FLOWENDREASON
+%type <s> FLOWENDREASON
 %type <value>	expr NUMBER PORTNUM ICMP_TYPE ICMP_CODE
 %type <s> STRING REASON 
 %type <param> dqual term comp acl inout
@@ -652,7 +654,24 @@ term:	ANY { /* this is an unconditionally true expression, as a filter applies i
 		$$.self = NewBlock(OffsetRouterID, MaskEngineID, ($3 << ShiftEngineID) & MaskEngineID, $2.comp, FUNC_NONE, NULL);
 
 	}
- 
+
+	| FLOWEND FLOWENDREASON {
+		if ( strncasecmp($2,"idle", 4) == 0 ) {
+			$$.self = NewBlock(OffsetFlowEndReason, MaskFlowEndReason, ( FLOW_END_REASON_IDLE_TIMEOUT << ShiftFlowEndReason) & MaskFlowEndReason, CMP_EQ, FUNC_NONE, NULL );
+		} else if ( strncasecmp($2,"active", 6) == 0 ) {
+	 		$$.self = NewBlock(OffsetFlowEndReason, MaskFlowEndReason, ( FLOW_END_REASON_ACTIVE_TIMEOUT << ShiftFlowEndReason) & MaskFlowEndReason, CMP_EQ, FUNC_NONE, NULL );
+		} else if ( strncasecmp($2,"ended", 3) == 0 ) {
+	 		$$.self = NewBlock(OffsetFlowEndReason, MaskFlowEndReason, ( FLOW_END_REASON_END_OF_FLOW << ShiftFlowEndReason) & MaskFlowEndReason, CMP_EQ, FUNC_NONE, NULL );
+		} else if ( strncasecmp($2,"forced", 6) == 0 ) {
+	 		$$.self = NewBlock(OffsetFlowEndReason, MaskFlowEndReason, ( FLOW_END_REASON_FORCED_END << ShiftFlowEndReason) & MaskFlowEndReason, CMP_EQ, FUNC_NONE, NULL );
+		} else if ( strncasecmp($2,"noresources", 6) == 0 ) {
+	 		$$.self = NewBlock(OffsetFlowEndReason, MaskFlowEndReason, ( FLOW_END_REASON_NO_RESOURCES << ShiftFlowEndReason) & MaskFlowEndReason, CMP_EQ, FUNC_NONE, NULL );
+		} else {
+			yyerror("Unknown flow end reason");
+			YYABORT;
+		}
+	}
+
 	| ASA EVENT REASON {
 #ifdef NSEL
 		if ( strncasecmp($3,"ignore", 6) == 0) {
@@ -1607,7 +1626,7 @@ term:	ANY { /* this is an unconditionally true expression, as a filter applies i
 			uint64_t mask;
 			uint32_t offset, shift;
 			char *s = &$2[5];
-			if ( s == '\0' ) {
+			if ( *s == '\0' ) {
 				yyerror("Missing label number");
 				YYABORT;
 			}
@@ -1678,7 +1697,7 @@ term:	ANY { /* this is an unconditionally true expression, as a filter applies i
 			uint64_t mask;
 			uint32_t offset, shift;
 			char *s = &$2[3];
-			if ( s == '\0' ) {
+			if ( *s == '\0' ) {
 				yyerror("Missing label number");
 				YYABORT;
 			}

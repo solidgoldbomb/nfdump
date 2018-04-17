@@ -393,6 +393,11 @@ extension_map_t	*extension_map = r->map_ref;
 , datestr);
 				free(datestr);
 				} break;
+			case EX_FLOW_END_REASON:
+				snprintf(_s, slen-1,
+"	\"flow_end_reason\" : %u,\n"
+, r->flow_end_reason);
+				break;
 #ifdef NSEL
 			case EX_NSEL_COMMON: {
 				char *event = "UNKNOWN";

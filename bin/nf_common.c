@@ -75,6 +75,11 @@ static int 		long_v6 	 = 0;
 static int		scale	 	 = 1;
 static double	duration;
 
+#define IPFIX_FLOW_END_REASONS 6
+static char *IPFIX_flow_end_reason_string[IPFIX_FLOW_END_REASONS] = {
+	"INVALID", "IDLE TIMEOUT", "ACTIVE_TIMEOUT", "END OF FLOW", "FORCED END", "LACK OF RESOURCES",
+};
+
 #ifdef NSEL
 static char *NSEL_event_string[6] = {
 	"IGNORE", "CREATE", "DELETE", "DENIED", "ALERT", "UPDATE"
@@ -237,6 +242,8 @@ static void String_bpp(master_record_t *r, char *string);
 
 static void String_ExpSysID(master_record_t *r, char *string);
 
+static void String_FlowEndReason(master_record_t *r, char *string);
+
 #ifdef NSEL
 static void String_EventTime(master_record_t *r, char *string);
 
@@ -354,6 +361,8 @@ static struct format_token_list_s {
 	{ "%bpp", 0, "   Bpp", 				 	String_bpp },			// bpp - Bytes per package
 	{ "%eng", 0, " engine", 			 	String_Engine },		// Engine Type/ID
 	{ "%lbl", 0, "           label", 		String_Label },			// Flow Label
+
+	{ "%fend", 0, "Flow end reason",		String_FlowEndReason },		// Flow End Reason
 
 #ifdef NSEL
 // NSEL specifics
@@ -1091,6 +1100,19 @@ extension_map_t	*extension_map = r->map_ref;
 				_s = data_string + _slen;
 				slen = STRINGSIZE - _slen;
 				break;
+			case EX_FLOW_END_REASON: {
+				char *flow_end_reason = "UNKNOWN";
+				if ( r->flow_end_reason < IPFIX_FLOW_END_REASONS ) {
+					flow_end_reason = IPFIX_flow_end_reason_string[r->flow_end_reason];
+				}
+				snprintf(_s, slen-1,
+"  flow end     =     %s\n"
+, flow_end_reason);
+				_slen = strlen(data_string);
+				_s = data_string + _slen;
+				slen = STRINGSIZE - _slen;
+				} break;
+
 #ifdef NSEL
 			case EX_NSEL_COMMON: {
 				char *event = "UNKNOWN";
@@ -1896,6 +1918,14 @@ static void String_LastSeenRaw(master_record_t *r, char *string) {
 
 } // End of String_LastSeenRaw
 
+static void String_FlowEndReason(master_record_t *r, char *string) {
+	if ( r->flow_end_reason < IPFIX_FLOW_END_REASONS ) {
+		snprintf(string, MAX_STRING_LENGTH-1, "%s", IPFIX_flow_end_reason_string[r->flow_end_reason]);
+	} else {
+		snprintf(string, MAX_STRING_LENGTH-1, "%s", "UNKNOWN");
+	}
+	string[MAX_STRING_LENGTH-1] = '\0';
+} // End of String_FlowEndReason
 
 #ifdef NSEL
 static void String_EventTime(master_record_t *r, char *string) {

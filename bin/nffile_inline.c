@@ -365,6 +365,11 @@ void		*p = (void *)input_record;
 				output_record->received = v.val.val64;
 				p = (void *)tpl->data;
 			} break;
+			case EX_FLOW_END_REASON: {
+				tpl_ext_28_t *tpl = (tpl_ext_28_t *)p;
+				output_record->flow_end_reason = tpl->flow_end_reason;
+				p = (void *)tpl->data;
+			} break;
 #ifdef NSEL
 			case EX_NSEL_COMMON: {
 				tpl_ext_37_t *tpl = (tpl_ext_37_t *)p;

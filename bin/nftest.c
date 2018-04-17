@@ -1239,5 +1239,23 @@ void *p;
 
 #endif
 
+	flow_record.flow_end_reason = 0;
+	ret = check_filter_block("flowend idle", &flow_record, 0);
+	ret = check_filter_block("flowend active", &flow_record, 0);
+	ret = check_filter_block("flowend ended", &flow_record, 0);
+	ret = check_filter_block("flowend forced", &flow_record, 0);
+	ret = check_filter_block("flowend noresources", &flow_record, 0);
+
+	flow_record.flow_end_reason = 1;
+	ret = check_filter_block("flowend idle", &flow_record, 1);
+	flow_record.flow_end_reason = 2;
+	ret = check_filter_block("flowend active", &flow_record, 1);
+	flow_record.flow_end_reason = 3;
+	ret = check_filter_block("flowend ended", &flow_record, 1);
+	flow_record.flow_end_reason = 4;
+	ret = check_filter_block("flowend forced", &flow_record, 1);
+	flow_record.flow_end_reason = 5;
+	ret = check_filter_block("flowend noresources", &flow_record, 1);
+
 	return 0;
 }

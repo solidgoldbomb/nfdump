@@ -261,6 +261,7 @@ static struct ipfix_element_map_s {
 	{ IPFIX_mplsLabelStackSection10, 	 _3bytes,   _4bytes,  move_mpls, zero32, EX_MPLS},
 	{ IPFIX_DestinationMacAddress, 		 _6bytes,   _8bytes,  move_mac, zero64, EX_MAC_2},
 	{ IPFIX_postSourceMacAddress, 		 _6bytes,   _8bytes,  move_mac, zero64, EX_MAC_2},
+	{ IPFIX_flowEndReason,			 _1byte,    _1byte,   move8, zero8, EX_FLOW_END_REASON},
 	{ IPFIX_flowStartMilliseconds, 		 _8bytes,   _8bytes,  Time64Mili, zero32, COMMON_BLOCK},
 	{ IPFIX_flowEndMilliseconds, 		 _8bytes,   _8bytes,  Time64Mili, zero32, COMMON_BLOCK},
 	{ IPFIX_flowStartDeltaMicroseconds,	 _4bytes,   _4bytes,  TimeDeltaMicro, zero32, COMMON_BLOCK},
@@ -849,6 +850,9 @@ size_t				size_required;
 				table->received_offset = offset;
 				dbg_printf("Received offset: %u\n", offset);
 				offset				   += 8;
+				break;
+			case EX_FLOW_END_REASON:
+				PushSequence( table, IPFIX_flowEndReason, &offset, NULL);
 				break;
 
 		}

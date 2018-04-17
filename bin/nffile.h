@@ -973,17 +973,28 @@ typedef struct tpl_ext_27_s {
 	uint8_t		data[4];	// points to further data
 } tpl_ext_27_t;
 
+/*
+ * IPFIX Flow End Reason
+ * Extension 28:
+ * +----+--------------+
+ * |  0 |EndReason(136)|
+ * +----+--------------+
+ */
 
+#define EX_FLOW_END_REASON	28
+typedef struct tpl_ext_28_s {
+	uint8_t		flow_end_reason;
+	uint8_t		data[4];	// points to further data
+} tpl_ext_28_t;
 
-#define EX_RESERVED_1	28
-#define EX_RESERVED_2	29
-#define EX_RESERVED_3	30
-#define EX_RESERVED_4	31
-#define EX_RESERVED_5	32
-#define EX_RESERVED_6	33
-#define EX_RESERVED_7	34
-#define EX_RESERVED_8	35
-#define EX_RESERVED_9	36
+#define EX_RESERVED_1	29
+#define EX_RESERVED_2	30
+#define EX_RESERVED_3	31
+#define EX_RESERVED_4	32
+#define EX_RESERVED_5	33
+#define EX_RESERVED_6	34
+#define EX_RESERVED_7	35
+#define EX_RESERVED_8	36
 
 /*
  * NSEL Common block
@@ -1191,7 +1202,6 @@ typedef struct tpl_ext_48_s {
 } tpl_ext_48_t;
 
 #define EX_NEL_RESERVED_1	49
-
 
 /* 
  * 
@@ -2073,6 +2083,20 @@ typedef struct master_record_s {
 
 	// flow received time in ms
 	uint64_t	received;
+
+	// extension 28
+#define FLOW_END_REASON_BASE_OFFSET     (offsetof(master_record_t, flow_end_reason) >> 3)
+#   define OffsetFlowEndReason	FLOW_END_REASON_BASE_OFFSET
+	uint8_t		flow_end_reason;	// index FLOW_END_REASON_BASE_OFFSET 0xff00'0000'0000'0000
+	uint8_t		flow_end_reason_pad[7];	// index FLOW_END_REASON_BASE_OFFSET 0x00ff'ffff'ffff'ffff
+
+#ifdef WORDS_BIGENDIAN
+#	define MaskFlowEndReason		0xFF00000000000000LL
+#	define ShiftFlowEndReason		56
+#else
+#	define MaskFlowEndReason		0x00000000000000FFLL
+#	define ShiftFlowEndReason		0
+#endif
 
 /* possible user extensions may fit here
  * - Put each extension into its own #ifdef

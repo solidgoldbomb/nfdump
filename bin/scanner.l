@@ -198,6 +198,13 @@ end				{ return END;		/* NAT port block end */ }
 step			{ return STEP;		/* NAT port block step */ }
 size			{ return SIZE;		/* NAT port block size */ }
 nip				{ return NIP; 		/* NSEL filter */ }
+
+flowend			{ return FLOWEND;	/* Flow End Reason filter */ }
+idle|active|ended|forced|noresources	{	/* Flow End Reason filter */
+					yylval.s = strdup(yytext);
+					return FLOWENDREASON;
+				}
+
 and|"&&"		{ return AND; }
 or|"||"			{ return OR; }
 not|"!"			{ return NOT; }
