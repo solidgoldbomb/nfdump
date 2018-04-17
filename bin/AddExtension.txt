@@ -1,11 +1,147 @@
 Add extensions:
 ===============
 
-1. Add appropriate definitions for new extension in nffile.h
-2. Update extension_descriptor array in nfx.c to reflect the new extension.
-   Increase user index ( 3rd value )
-3. Add filter in grammar.y
-4. test filter with nftest.
-5. nffile_inline.c
-6. nf_common.c define printing functions
-7. nfsta.c add stat definitions
+Define the on-disk format for the new extension
+-----------------------------------------------
+
+This defines how the attributes in your new extension will be stored in the files produced
+by nfcapd.  These definitions are used by nfcapd when writing the files and by nfdump when
+reading/processing the files.
+
+nffile.h:
+ * define a new ID for the new extension
+   * e.g. #define EX_FLOW_END_REASON 28
+   * Make sure the value that you choose here does not overlap with any other extension ID
+ * declare a new struct and type for the disk format of the new extension
+   * e.g. typedef struct tpl_ext_28_s { ... } tpl_ext_28_t;
+   * always add a "data" element to the struct which will be used to move a pointer past your struct
+
+Extend the relevant protocol decoder to write the new on-disk record
+--------------------------------------------------------------------
+
+The details of this step will depend on which protocol you're decoding.  This section
+describes the details for adding a new IPFIX Element ID.
+
+ipfix.h:
+ * Define the code point for the new element ID that will be decoded by your extension
+   * Element IDs can be found in: https://www.iana.org/assignments/ipfix/ipfix.xhtml
+   * e.g. #define IPFIX_flowEndReason 136
+
+ipfix.c:
+ * Extend the ipfix_element_map[] to include a mapping from the Element ID to the on-disk format
+   * This entry also binds the IPFIX Element ID to the extension ID (e.g. EX_FLOW_END_REASON)
+ * Extend the switch statement in setup_translation_table() to issue a PushSequence() call to
+   configure the translation table to copy the appropriate bytes from the IPFIX flow record into
+   the nfcapd on-disk file format.
+
+Define the in-memory format for the new extension
+-------------------------------------------------
+
+The filtering/display/output routines do not operate directly on the on-disk format.  The nfdump
+tool reads the on-disk format and calls the ExpandRecord_v2() function to unpack the on-disk format
+into the master_record_s in-memory format.  All filter/display/output functions operate on the
+in-memory record format.
+
+nffile.h:
+ * extend the in-memory master_record_s struct to hold the unpacked form of your disk-format
+   * Add fields to the *end* of the struct so as to not move any of the 64-bit word offsets
+     of any of the other fields.
+   * Always define your fields in blocks of 64-bits.  Define pad fields if necessary.
+   * The NewBlock() function in the filtering code (see grammar.y below) depends on being able
+     to find your fields within specific 64-bit words.
+ * define 64-bit word offsets for each of the fields you've added
+   * Tip: compute the word offset of the first field using the offsetof builtin and define
+          other word offsets for your extension relative to that base offset
+ * define shift/mask macros (big and little endian) for the individual fields within each 64-bit word
+   * These shift/mask macros will be used by filtering code in grammar.y (see below)
+
+Provide code to expand your new extension from the on-disk format to the in-memory structure
+--------------------------------------------------------------------------------------------
+
+The ExpandRecord_v2() function is called by nfdump to read/parse each on-disk record before
+calling the relevant filter/display/output functions.
+
+nffile_inline.c:
+ * Add code to the switch statement in the ExpandRecord_v2() function.  Look for "case EX_".
+ * This code should read from the tpl_ext_XX_t struct you defined in nffile.h and fill in
+   the related fields that you defined in master_record_s
+
+Bind your new extension to the list of available extensions (-T command line option)
+------------------------------------------------------------------------------------
+
+In order for your extension attributes to be processed (and stored to disk) by nfcapd, the following
+must all be true:
+ * The user has enabled your extension (via -T command line option)
+ * A template that references your extension fields must have been received by nfcapd
+
+The value that the user passes to the -T option to enable your extension is NOT the extension
+ID (e.g. EX_FLOW_END_REASON 28 from nffile.h).  The user must pass the user_index value from
+the extension_descriptor_s in nfx.c (see below).
+
+nfx.c:
+ * Add a new entry to the extension_descriptor array to describe your new extension
+ * e.g. { EX_FLOW_END_REASON, 1, 17, 0, "reason for flow termination"},
+ * This maps between the extension ID (EX_FLOW_END_REASON) and the user_index (17)
+ * NOTE: You MUST add the new entry at exactly the array position that matches the
+         value of your extension ID.  ie. EX_FLOW_END_REASON must be exactly
+	 extension_descriptor[28] since the selected ID value (above) was 28.
+ * NOTE: You must choose the next available value for user_index (3rd field) that has not been
+         used already.
+
+Extend the filtering grammar to allow nfdump to refer to the fields in your new extension
+-----------------------------------------------------------------------------------------
+
+The filter syntax is defined in scanner.l (lexer) and grammar.y (parser) and is used by nfdump
+to select a subset of all available records for display.
+
+scanner.l:
+ * define any tokens that you need in your new filtering grammar
+
+grammar.y:
+ * extend the filtering grammar to provide syntax for filtering the fields in your new extension
+ * declare all referenced tokens (defined in scanner.l) at the top of the file with %token
+ * Note: the filters operate on the in-memory record format and reference specific words and masks
+         within the raw memory structure.  These word offsets and masks are defined in nffile.h.
+
+Add tests for your new filtering grammar
+----------------------------------------
+
+Tests for the filtering grammar are executed when you run 'make check'.
+
+nftest.c:
+ * Add new blocks of tests that exercise your new grammar
+ * set up relevant fields within a flow_record structure
+ * use the check_filter_block() to test a given filter statement against that flow_record
+
+Ensure all tests pass when running 'make check' (which runs the nftest binary)
+
+Define output formatting functions
+----------------------------------
+
+nf_common.c: -o 'fmt:%foo'
+ * Declare and define string representations of your new extension
+ * Add a new format token (in format_token_list[]) for each attribute made available by your extension
+   * Map the format token to the string formatting functions you've added
+
+nf_common.c: -o raw
+ * Add code to the format_file_block_record() function to print your extension attributes as part
+   of the raw output format.
+
+nf_common.c: -o csv
+ * Add code to the flow_record_to_csv() function to print your extension attributes as part of
+   the csv output format.
+
+nf_common.c: -o pipe
+ * Add code to the flow_record_to_pipe() function to print your extension attributes as part of
+   the csv output format.
+
+output_json.c: -o json
+ * Add code to the flow_record_to_json() function to print your extension attributes as part of
+   the json output format.
+
+Add statistics definitions
+--------------------------
+
+nfstat.c:
+ * Add statistics for your new extension attributes
+ * TODO: This section could use more detail
